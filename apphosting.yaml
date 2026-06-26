@@ -49,8 +49,10 @@ env:
     secret: OPENAI_API_KEY
 
   # Optional extra AI engines — uncomment after creating the matching secret:
-  # - variable: PERPLEXITY_API_KEY
-  #   secret: PERPLEXITY_API_KEY
+  - variable: PERPLEXITY_API_KEY
+    secret: PERPLEXITY_API_KEY
+  - variable: GOOGLE_AI_API_KEY
+    secret: GOOGLE_AI_API_KEY
   # - variable: DATAFORSEO_USERNAME
   #   secret: DATAFORSEO_USERNAME
   # - variable: DATAFORSEO_PASSWORD
