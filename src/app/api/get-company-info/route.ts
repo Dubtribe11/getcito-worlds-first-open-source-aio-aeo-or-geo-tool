@@ -147,12 +147,21 @@ export async function POST(request: NextRequest) {
     
     // Initialize provider manager
     const providerManager = new ProviderManager();
-    
-    // Create API request with Azure AD as primary, Gemini as fallback
+
+    // Use whichever AI providers are actually configured, in priority order.
+    // First successful result wins, so this works with any one of them set.
+    const companyInfoProviders: string[] = [];
+    if (process.env.AZURE_OPENAI_API_KEY) companyInfoProviders.push('azure-openai');
+    if (process.env.OPENAI_API_KEY || process.env.CHATGPT_SEARCH_API_KEY) companyInfoProviders.push('chatgptsearch');
+    if (process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY) companyInfoProviders.push('google-gemini');
+    if (companyInfoProviders.length === 0) companyInfoProviders.push('chatgptsearch'); // best-effort fallback
+    console.log('🧩 Company-info providers (configured):', companyInfoProviders);
+
+    // Create API request using the configured providers
     const apiRequest: APIRequest = {
       id: `company-info-${Date.now()}`,
       prompt: prompt,
-      providers: ['azure-openai', 'google-gemini'], // Azure AD first, then Gemini fallback
+      providers: companyInfoProviders,
       priority: 'medium',
       userId: 'system', // Using system for non-authenticated requests
       createdAt: new Date(),

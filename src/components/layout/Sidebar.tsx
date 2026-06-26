@@ -164,15 +164,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps): React.React
             <div className="flex items-center justify-center w-full">
               {/* Light theme logo only - TODO: Restore theme-aware logos when implementing theme switching */}
               <div className="relative">
-                <Image
-                  src="/getcito-logo-dark.webp"
-                  alt="AI Monitor Logo"
-                  width={160}
-                  height={36}
-                  style={{ width: 'auto', height: 'auto' }}
-                  priority
-                  className="h-9 w-auto"
-                />
+                <span className="text-xl font-bold text-white whitespace-nowrap">Nelson O&apos;Neill</span>
                 {/* TODO: Restore dark theme logo when implementing theme switching
                 <Image
                   src="/AI-Monitor-Logo-V3-long-dark-themel.png"
