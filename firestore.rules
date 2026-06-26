@@ -26,6 +26,11 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // Per-user dashboard metrics (doc id == uid; body has no userId field).
+    match /user_metrics/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
     // Brands. Doc id (brandId) is typically `${uid}_...`, and the doc also
     // carries a userId field — allow if either matches.
     match /v8userbrands/{brandId} {
@@ -67,6 +72,13 @@ service cloud.firestore {
       allow update: if ownsExisting() && ownsIncoming();
     }
     match /user_brand_prompts/{docId} {
+      allow read, delete: if ownsExisting();
+      allow create: if ownsIncoming();
+      allow update: if ownsExisting() && ownsIncoming();
+    }
+    // Raw per-query records (each doc has userId + brandId). Read queries filter
+    // by userId or by an owner-scoped brandId, so per-doc ownership holds.
+    match /v8userqueries/{docId} {
       allow read, delete: if ownsExisting();
       allow create: if ownsIncoming();
       allow update: if ownsExisting() && ownsIncoming();
