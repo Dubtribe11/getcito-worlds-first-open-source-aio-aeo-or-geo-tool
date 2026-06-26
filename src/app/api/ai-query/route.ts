@@ -4,6 +4,32 @@ import { APIRequest } from '@/lib/api-providers/types';
 
 const providerManager = new ProviderManager();
 
+// Providers that are actually configured via environment keys. (Note: the bare
+// 'azure-openai' provider is only real when AZURE_OPENAI_API_KEY is set — the
+// ProviderManager otherwise registers it with a placeholder key that fails.)
+function configuredProviders(): string[] {
+  const set: string[] = [];
+  if (process.env.AZURE_OPENAI_API_KEY) set.push('azure-openai');
+  if (process.env.AZURE_OPENAI_SEARCH_API_KEY || process.env.AZURE_OPENAI_API_KEY) set.push('azure-openai-search');
+  if (process.env.OPENAI_API_KEY || process.env.CHATGPT_SEARCH_API_KEY) set.push('chatgptsearch');
+  if (process.env.PERPLEXITY_API_KEY) set.push('perplexity');
+  if (process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY) set.push('google-gemini');
+  if (process.env.DATAFORSEO_USERNAME && process.env.DATAFORSEO_PASSWORD) set.push('google-ai-overview');
+  return set;
+}
+
+// Resolve the requested providers to ones that are actually configured. If none
+// of the requested providers are available, fall back to the best configured
+// text model so callers that hardcode a provider still work.
+function resolveProviders(requested: string[]): string[] {
+  const available = configuredProviders();
+  const effective = (requested || []).filter((p) => available.includes(p));
+  if (effective.length > 0) return effective;
+  const preferred = ['chatgptsearch', 'google-gemini', 'azure-openai', 'perplexity'];
+  const fallback = preferred.find((p) => available.includes(p));
+  return fallback ? [fallback] : [];
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -31,11 +57,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Map requested providers to whatever is actually configured.
+    const effectiveProviders = resolveProviders(providers);
+    console.log('🧩 ai-query providers:', { requested: providers, effective: effectiveProviders });
+
     // Create API request
     const apiRequest: APIRequest = {
       id: `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       prompt,
-      providers,
+      providers: effectiveProviders,
       priority,
       userId,
       metadata: {
