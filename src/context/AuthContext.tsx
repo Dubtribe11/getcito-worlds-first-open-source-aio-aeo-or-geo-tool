@@ -1,11 +1,25 @@
 'use client'
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, signOut, User } from 'firebase/auth';
 import firebase_app from '@/firebase/config';
 import { createUserProfile, getUserProfile, UserProfile } from '@/firebase/firestore/userProfile';
 
 // Initialize Firebase auth instance
 const auth = getAuth( firebase_app );
+
+// Optional sign-up/sign-in allowlist. When NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS is
+// set (comma-separated, e.g. "nelsononeill.com.au"), only those email domains
+// may use the app; anyone else is signed out immediately. Unset = open to all.
+const ALLOWED_EMAIL_DOMAINS = ( process.env.NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS || '' )
+  .split( ',' )
+  .map( ( d ) => d.trim().toLowerCase() )
+  .filter( Boolean );
+
+function isEmailAllowed( email: string | null | undefined ): boolean {
+  if ( ALLOWED_EMAIL_DOMAINS.length === 0 ) return true; // no allowlist configured
+  const domain = ( email || '' ).split( '@' )[ 1 ]?.toLowerCase();
+  return !!domain && ALLOWED_EMAIL_DOMAINS.includes( domain );
+}
 
 // Create the authentication context with proper typing
 interface AuthContextType {
@@ -49,9 +63,19 @@ export function AuthContextProvider( { children }: AuthContextProviderProps ): R
   // Function to handle user authentication state changes
   const handleAuthStateChange = async (user: User | null) => {
     if (user) {
+      // Enforce the optional email-domain allowlist before granting access.
+      if (!isEmailAllowed(user.email)) {
+        console.warn('⛔ Email domain not allowed — signing out:', user.email);
+        await signOut(auth);
+        setUser(null);
+        setUserProfile(null);
+        setLoading(false);
+        return;
+      }
+
       // User is signed in - load/create their profile
       setUser(user);
-      
+
       try {
         // Check if user profile exists, create if new user
         const { result: existingProfile } = await getUserProfile(user.uid);

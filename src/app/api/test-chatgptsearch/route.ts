@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ProviderManager } from '@/lib/api-providers/provider-manager';
+import { debugRouteGuard } from '@/lib/debug-guard';
 
 export async function GET(request: NextRequest) {
+  const blocked = debugRouteGuard();
+  if (blocked) return blocked;
   try {
     console.log('🔍 Testing ChatGPT Search Provider...');
     
@@ -97,6 +100,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const blocked = debugRouteGuard();
+  if (blocked) return blocked;
   try {
     const { query } = await request.json();
     

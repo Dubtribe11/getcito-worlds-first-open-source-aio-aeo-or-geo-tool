@@ -225,8 +225,25 @@ export async function POST(request: NextRequest) {
     // Initialize provider manager
     const providerManager = new ProviderManager();
     
-    // Use only the 3 selected providers
-    const selectedProviders = ['azure-openai-search', 'google-ai-overview', 'perplexity'];
+    // Use whichever providers are actually configured. This adapts automatically
+    // as you add keys (OpenAI, Perplexity, DataForSEO, Gemini, Azure).
+    const selectedProviders: string[] = [];
+    // "ChatGPT" slot: prefer Azure if set, else direct OpenAI.
+    if (process.env.AZURE_OPENAI_SEARCH_API_KEY || process.env.AZURE_OPENAI_API_KEY) {
+      selectedProviders.push('azure-openai-search');
+    } else if (process.env.OPENAI_API_KEY || process.env.CHATGPT_SEARCH_API_KEY) {
+      selectedProviders.push('chatgptsearch');
+    }
+    if (process.env.DATAFORSEO_USERNAME && process.env.DATAFORSEO_PASSWORD) {
+      selectedProviders.push('google-ai-overview');
+    }
+    if (process.env.PERPLEXITY_API_KEY) {
+      selectedProviders.push('perplexity');
+    }
+    if (process.env.GOOGLE_AI_API_KEY || process.env.GEMINI_API_KEY) {
+      selectedProviders.push('google-gemini');
+    }
+    console.log('🧩 Visibility-tracking providers (configured):', selectedProviders);
     
     // Create API request for the 3 providers
     const apiRequest = {
@@ -271,6 +288,7 @@ export async function POST(request: NextRequest) {
       if (result.status === 'success' && result.data) {
         switch (result.providerId) {
           case 'azure-openai-search':
+          case 'chatgptsearch':
             summary.chatgptSearch = {
               content: result.data.content || '',
               webSearchUsed: result.data.webSearchUsed || false,
@@ -278,7 +296,15 @@ export async function POST(request: NextRequest) {
               responseTime: result.responseTime
             };
             break;
-            
+
+          case 'google-gemini':
+            summary.gemini = {
+              content: result.data.content || '',
+              citations: result.data.citationMetadata ? 1 : 0,
+              responseTime: result.responseTime
+            };
+            break;
+
           case 'google-ai-overview':
             summary.googleAiOverview = {
               totalItems: result.data.totalItems || 0,

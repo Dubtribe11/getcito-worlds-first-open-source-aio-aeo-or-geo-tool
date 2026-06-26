@@ -1,45 +1,101 @@
 rules_version = '2';
 
+// Production security rules.
+// Principles:
+//  - No anonymous access. Every rule requires request.auth != null.
+//  - Per-user isolation: users can only read/write documents they own
+//    (matched via a `userId` field, or a uid-prefixed document id).
+//  - The Firebase Admin SDK (used by the server API routes) BYPASSES these
+//    rules entirely, so tightening them does NOT affect server-side processing.
 service cloud.firestore {
   match /databases/{database}/documents {
-    // DEVELOPMENT RULES - PERMISSIVE FOR DEBUGGING
-    // These rules allow both client and server access
-    
-    // Allow authenticated users to read/write their own data
+
+    // True when the EXISTING document is owned by the caller (read/update/delete).
+    function ownsExisting() {
+      return request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    // True when the INCOMING document will be owned by the caller (create/update).
+    function ownsIncoming() {
+      return request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // A user's own profile document (doc id == uid).
+    // NOTE: credits live here and are currently adjusted client-side, so the
+    // owner can write this doc. The real spend backstop is the OpenAI usage cap.
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-    
-    // Allow authenticated users to read/write their own brand data
+
+    // Per-user dashboard metrics (doc id == uid; body has no userId field).
+    match /user_metrics/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Brands. Doc id (brandId) is typically `${uid}_...`, and the doc also
+    // carries a userId field — allow if either matches.
     match /v8userbrands/{brandId} {
-      allow read, write: if request.auth != null && 
+      allow read, delete: if request.auth != null &&
         (request.auth.uid == resource.data.userId || request.auth.uid == brandId.split('_')[0]);
+      allow create, update: if request.auth != null &&
+        (request.auth.uid == request.resource.data.userId || request.auth.uid == brandId.split('_')[0]);
     }
-    
-    // Allow authenticated users to read/write their own detailed query results
-    match /v8detailed_query_results/{resultId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+
+    // Per-user data collections (each document has a `userId` field).
+    match /v8detailed_query_results/{docId} {
+      allow read, delete: if ownsExisting();
+      allow create: if ownsIncoming();
+      allow update: if ownsExisting() && ownsIncoming();
     }
-    
-    // Allow authenticated users to read/write their own brand analytics
-    match /v8_user_brand_analytics/{analyticsId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+    match /v8_user_brand_analytics/{docId} {
+      allow read, delete: if ownsExisting();
+      allow create: if ownsIncoming();
+      allow update: if ownsExisting() && ownsIncoming();
     }
-    
-    // Allow authenticated users to read/write their own lifetime analytics
-    match /v8_lifetime_brand_analytics/{analyticsId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+    match /v8_lifetime_brand_analytics/{docId} {
+      allow read, delete: if ownsExisting();
+      allow create: if ownsIncoming();
+      allow update: if ownsExisting() && ownsIncoming();
     }
-    
-    // Allow all authenticated users to read/write everything (for development)
-    // This ensures Firebase Admin SDK can access all data
-    match /{document=**} {
+    match /user_recommendations/{docId} {
+      allow read, delete: if ownsExisting();
+      allow create: if ownsIncoming();
+      allow update: if ownsExisting() && ownsIncoming();
+    }
+    match /user_top_domains/{docId} {
+      allow read, delete: if ownsExisting();
+      allow create: if ownsIncoming();
+      allow update: if ownsExisting() && ownsIncoming();
+    }
+    match /user_trends/{docId} {
+      allow read, delete: if ownsExisting();
+      allow create: if ownsIncoming();
+      allow update: if ownsExisting() && ownsIncoming();
+    }
+    match /user_brand_prompts/{docId} {
+      allow read, delete: if ownsExisting();
+      allow create: if ownsIncoming();
+      allow update: if ownsExisting() && ownsIncoming();
+    }
+    // Raw per-query records (each doc has userId + brandId). Read queries filter
+    // by userId or by an owner-scoped brandId, so per-doc ownership holds.
+    match /v8userqueries/{docId} {
+      allow read, delete: if ownsExisting();
+      allow create: if ownsIncoming();
+      allow update: if ownsExisting() && ownsIncoming();
+    }
+
+    // Competitor analytics is keyed by brandId (`${brandId}_${session}`) and is
+    // non-sensitive aggregate data. Require sign-in; not isolated per user.
+    match /v8competitoranalytics/{docId} {
       allow read, write: if request.auth != null;
     }
-    
-    // FALLBACK: Allow all operations for development (this should catch Admin SDK requests)
-    match /{document=**} {
-      allow read, write: if true;
+
+    // Shared, cross-user leaderboard. Readable by any signed-in user.
+    match /brand_leaderboard/{docId} {
+      allow read, write: if request.auth != null;
     }
+
+    // Default deny: anything not matched above is inaccessible to clients.
+    // (The Admin SDK still has full access for server-side processing.)
   }
-} 
+}

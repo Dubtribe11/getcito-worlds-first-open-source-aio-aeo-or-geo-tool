@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PerplexityProvider } from '@/lib/api-providers/perplexity-provider';
+import { debugRouteGuard } from '@/lib/debug-guard';
 
 export async function POST(request: NextRequest) {
+  const blocked = debugRouteGuard();
+  if (blocked) return blocked;
   try {
     console.log('🧪 Testing Perplexity provider...');
     

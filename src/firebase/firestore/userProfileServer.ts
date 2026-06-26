@@ -4,6 +4,11 @@ import * as admin from 'firebase-admin';
 
 // Server-side user profile functions using Firebase Admin SDK
 
+// Credits granted to a brand-new user (server-side path). Keep in sync with the
+// client value; configurable via env for public deployments.
+const NEW_USER_CREDITS =
+  Number(process.env.NEW_USER_CREDITS ?? process.env.NEXT_PUBLIC_NEW_USER_CREDITS) || 500;
+
 // Get user profile from Firestore using Admin SDK
 export async function getUserProfileServer(uid: string): Promise<{ result: UserProfile | null; error: any }> {
   let result = null;
@@ -116,12 +121,12 @@ export async function createUserProfileServer(userData: any, isNewUser: boolean 
     const now = new Date().toISOString();
     
     if (!userDoc.exists || isNewUser) {
-      // Create new user profile with 500 credits
+      // Create new user profile with the configured starting credits
       const userProfile: Partial<UserProfile> = {
         uid: userData.uid,
         email: userData.email || '',
         displayName: userData.displayName || userData.email?.split('@')[0] || 'User',
-        credits: 500, // Give 500 credits to new users
+        credits: NEW_USER_CREDITS,
         createdAt: now,
         lastLoginAt: now,
         isNewUser: true
@@ -134,7 +139,7 @@ export async function createUserProfileServer(userData: any, isNewUser: boolean 
       
       await userRef.set(userProfile);
       result = userProfile as UserProfile;
-      console.log('🎉 New user created with 500 credits (Admin SDK):', userData.email);
+      console.log(`🎉 New user created with ${NEW_USER_CREDITS} credits (Admin SDK):`, userData.email);
     } else {
       // Update existing user's last login
       const existingData = userDoc.data() as UserProfile;

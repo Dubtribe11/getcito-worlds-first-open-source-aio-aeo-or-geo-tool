@@ -12,8 +12,8 @@ const inter = Inter( { subsets: [ 'latin' ] } );
 
 // Metadata for the application
 export const metadata = {
-  title: 'GetCito Dashboard',
-  description: 'Intelligent brand analysis and query optimization platform',
+  title: "Nelson O'Neill — AI Visibility Tracking",
+  description: 'AI visibility tracking and brand analysis across AI search engines',
 };
 
 // Root layout component for the application

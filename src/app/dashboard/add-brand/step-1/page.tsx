@@ -136,23 +136,8 @@ export default function AddBrandStep1(): React.ReactElement {
       <div className="flex justify-center pt-8 pb-6">
         <div className="flex flex-col items-center space-y-2">
           {/* AI Monitor Logo */}
-          <div className="relative w-48 h-12">
-            <Image
-              src="/getcito-logo-dark.webp"
-              alt="AI Monitor Logo"
-              width={192}
-              height={48}
-              className="block dark:hidden w-full h-auto"
-              priority
-            />
-            <Image
-              src="/AI-Monitor-Logo-V3-long-dark-themel.png"
-              alt="AI Monitor Logo"
-              width={192}
-              height={48}
-              className="hidden dark:block w-full h-auto"
-              priority
-            />
+          <div className="flex items-center justify-center w-48 h-12">
+            <span className="text-2xl font-bold text-white">Nelson O&apos;Neill</span>
           </div>
         </div>
       </div>
@@ -200,7 +185,7 @@ export default function AddBrandStep1(): React.ReactElement {
             {/* Welcome Text */}
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-white mb-4">
-                Welcome to GetCito
+                Welcome to Nelson O&apos;Neill
               </h1>
               <p className="text-gray-300 text-lg">
                 Let&apos;s create your brand profile starting with your website
