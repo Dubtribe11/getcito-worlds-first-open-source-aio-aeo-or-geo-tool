@@ -1,0 +1,71 @@
+# Firebase App Hosting configuration.
+# Docs: https://firebase.google.com/docs/app-hosting/configure
+#
+# Deploy: connect this repo to a Firebase App Hosting backend (Firebase Console
+# > Build > App Hosting), or run `firebase init apphosting`. Pushes to the live
+# branch build and roll out automatically.
+
+runConfig:
+  # Scale to zero when idle so an idle app costs ~$0 (accepts occasional cold
+  # starts). Set minInstances: 1 to keep one instance warm (small always-on cost).
+  minInstances: 0
+  maxInstances: 2
+  cpu: 1
+  memoryMiB: 512
+  concurrency: 80
+
+env:
+  # --- Firebase client config (PUBLIC — safe to commit; baked into the browser
+  # bundle at build time, so availability must include BUILD). ---
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyCR8-1JFwHS-UfjEOQYG_POmq7SCs9hXVU
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: aivisbilitytracker.firebaseapp.com
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: aivisbilitytracker
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: aivisbilitytracker.firebasestorage.app
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "229989657890"
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:229989657890:web:f8c5a3425fa918aeffc97b
+    availability: [BUILD, RUNTIME]
+  - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    value: G-MRYSXSEY82
+    availability: [BUILD, RUNTIME]
+
+  # NOTE: FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY are intentionally OMITTED.
+  # Running inside the same Firebase project, the Admin SDK uses Application
+  # Default Credentials automatically — no service-account key to store.
+
+  # --- Server-side secrets (stored in Cloud Secret Manager, NOT committed) ---
+  # Create with:  firebase apphosting:secrets:set OPENAI_API_KEY
+  - variable: OPENAI_API_KEY
+    secret: OPENAI_API_KEY
+
+  # Optional extra AI engines — uncomment after creating the matching secret:
+  # - variable: PERPLEXITY_API_KEY
+  #   secret: PERPLEXITY_API_KEY
+  # - variable: DATAFORSEO_USERNAME
+  #   secret: DATAFORSEO_USERNAME
+  # - variable: DATAFORSEO_PASSWORD
+  #   secret: DATAFORSEO_PASSWORD
+
+  # Optional: set to your live origin once known (e.g. https://app.yourdomain.com).
+  # If omitted, the app falls back to the incoming request origin.
+  # - variable: NEXT_PUBLIC_APP_URL
+  #   value: https://your-backend--aivisbilitytracker.web.app
+  #   availability: [BUILD, RUNTIME]
+
+  # Optional hardening knobs (see .env.example):
+  # - variable: NEXT_PUBLIC_NEW_USER_CREDITS
+  #   value: "20"
+  #   availability: [BUILD, RUNTIME]
+  # - variable: NEXT_PUBLIC_ALLOWED_EMAIL_DOMAINS
+  #   value: "nelsononeill.com.au"
+  #   availability: [BUILD, RUNTIME]

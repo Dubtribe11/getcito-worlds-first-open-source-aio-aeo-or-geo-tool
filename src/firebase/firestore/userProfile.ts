@@ -5,6 +5,10 @@ import { User } from "firebase/auth";
 // Get the Firestore instance
 const db = getFirestore(firebase_app);
 
+// Credits granted to a brand-new user. Configurable via env so a public
+// deployment can grant a small amount (limits how much a stray signup can spend).
+const NEW_USER_CREDITS = Number(process.env.NEXT_PUBLIC_NEW_USER_CREDITS) || 500;
+
 export interface UserProfile {
   uid: string;
   email: string;
@@ -28,12 +32,12 @@ export async function createUserProfile(user: User, isNewUser: boolean = false):
     const now = new Date().toISOString();
     
     if (!userDoc.exists() || isNewUser) {
-      // Create new user profile with 500 credits
+      // Create new user profile with the configured starting credits
       const userProfile: Partial<UserProfile> = {
         uid: user.uid,
         email: user.email || '',
         displayName: user.displayName || user.email?.split('@')[0] || 'User',
-        credits: 500, // Give 500 credits to new users
+        credits: NEW_USER_CREDITS,
         createdAt: now,
         lastLoginAt: now,
         isNewUser: true
@@ -46,7 +50,7 @@ export async function createUserProfile(user: User, isNewUser: boolean = false):
       
       await setDoc(userRef, userProfile);
       result = userProfile as UserProfile;
-      console.log('🎉 New user created with 500 credits:', user.email);
+      console.log(`🎉 New user created with ${NEW_USER_CREDITS} credits:`, user.email);
     } else {
       // Update existing user's last login
       const existingData = userDoc.data() as UserProfile;

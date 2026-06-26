@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { debugRouteGuard } from '@/lib/debug-guard';
 
 export async function GET(request: NextRequest) {
+  const blocked = debugRouteGuard();
+  if (blocked) return blocked;
   try {
     console.log('🔍 Starting provider debug check...');
     

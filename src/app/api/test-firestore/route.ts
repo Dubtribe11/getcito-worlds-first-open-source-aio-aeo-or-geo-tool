@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { firestore } from '@/firebase/firebase-admin';
+import { debugRouteGuard } from '@/lib/debug-guard';
 
 export async function POST(request: NextRequest) {
+  const blocked = debugRouteGuard();
+  if (blocked) return blocked;
   try {
     const body = await request.json();
     const { action, collection, docId, data } = body;
@@ -67,6 +70,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const blocked = debugRouteGuard();
+  if (blocked) return blocked;
   return NextResponse.json({
     message: 'Firestore Test API',
     description: 'Test Firebase Admin SDK Firestore access',

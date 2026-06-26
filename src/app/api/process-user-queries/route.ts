@@ -2,12 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserBrands, QueryProcessingResult } from '@/firebase/firestore/getUserBrands';
 
 // Process a single query through AI providers
-async function processQuery(queryText: string, context?: string): Promise<any> {
+async function processQuery(queryText: string, context: string | undefined, baseUrl: string): Promise<any> {
   try {
-    if (!process.env.NEXT_PUBLIC_APP_URL) {
-      throw new Error('NEXT_PUBLIC_APP_URL environment variable is not set');
-    }
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/user-query`, {
+    const response = await fetch(`${baseUrl}/api/user-query`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -36,6 +33,17 @@ async function processQuery(queryText: string, context?: string): Promise<any> {
 // Main handler to process queries for a user's brands
 export async function POST(request: NextRequest) {
   try {
+    // Resolve the origin for the server-to-server call to /api/user-query.
+    // Prefer an explicit NEXT_PUBLIC_APP_URL, otherwise derive it from the
+    // incoming request (works on any host without extra config).
+    const headerOrigin = (() => {
+      const host = request.headers.get('host');
+      if (!host) return null;
+      const proto = request.headers.get('x-forwarded-proto') || (host.startsWith('localhost') ? 'http' : 'https');
+      return `${proto}://${host}`;
+    })();
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || headerOrigin || 'http://localhost:3000';
+
     const { brandData, queries } = await request.json();
 
     if (!brandData || !queries) {
@@ -64,7 +72,8 @@ export async function POST(request: NextRequest) {
         // Process through AI providers
         const aiResult = await processQuery(
           query.query,
-          `This query is related to ${brandData.companyName} in the ${query.category} category. Topic: ${query.keyword}.`
+          `This query is related to ${brandData.companyName} in the ${query.category} category. Topic: ${query.keyword}.`,
+          baseUrl
         );
 
         console.log(`  📊 AI Result for query:`, {

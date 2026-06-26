@@ -1,43 +1,42 @@
 import * as admin from 'firebase-admin';
 
-// Initialize Firebase Admin SDK if not already initialized
+// Initialize Firebase Admin SDK if not already initialized.
+//
+// Two credential modes are supported automatically:
+//  1. Explicit service-account key (FIREBASE_CLIENT_EMAIL + FIREBASE_PRIVATE_KEY)
+//     — used for local development and any host where you paste the key.
+//  2. Application Default Credentials (no key needed) — used automatically when
+//     running inside the same Google project (e.g. Firebase App Hosting /
+//     Cloud Run). This is the recommended production setup: there is no private
+//     key to store or rotate.
 if (!admin.apps.length) {
   try {
-    // Validate required environment variables
-    const requiredEnvVars = [
-      'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
-      'FIREBASE_CLIENT_EMAIL', 
-      'FIREBASE_PRIVATE_KEY'
-    ];
-    
-    const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-    
-    if (missingVars.length > 0) {
-      throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
-    }
+    const projectId =
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+      process.env.GOOGLE_CLOUD_PROJECT ||
+      process.env.GCLOUD_PROJECT;
 
-    // Clean and format the private key
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
     const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-    
-    if (!privateKey) {
-      throw new Error('FIREBASE_PRIVATE_KEY is empty or invalid');
+    const databaseURL = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL;
+
+    if (clientEmail && privateKey) {
+      // Mode 1: explicit service-account credentials.
+      admin.initializeApp({
+        credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
+        ...(databaseURL ? { databaseURL } : {}),
+      });
+      console.log('✅ Firebase Admin SDK initialized (service-account key)');
+      console.log('📋 Project ID:', projectId);
+    } else {
+      // Mode 2: Application Default Credentials (same-project hosting).
+      admin.initializeApp({
+        ...(projectId ? { projectId } : {}),
+        ...(databaseURL ? { databaseURL } : {}),
+      });
+      console.log('✅ Firebase Admin SDK initialized (Application Default Credentials)');
+      console.log('📋 Project ID:', projectId || '(from runtime environment)');
     }
-
-    const adminConfig = {
-      credential: admin.credential.cert({
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: privateKey,
-      }),
-      databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
-    };
-
-    admin.initializeApp(adminConfig);
-    
-    console.log('✅ Firebase Admin SDK initialized successfully');
-    console.log('📋 Project ID:', process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
-    console.log('📋 Client Email:', process.env.FIREBASE_CLIENT_EMAIL?.substring(0, 20) + '...');
-    
   } catch (error) {
     console.error('❌ Firebase Admin SDK initialization error:', error);
     throw error;
@@ -62,4 +61,4 @@ export async function testFirestoreConnection(): Promise<boolean> {
   }
 }
 
-export default admin; 
+export default admin;
